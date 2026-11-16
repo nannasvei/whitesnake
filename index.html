@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guild Battle Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0b0911;
+  --surface-1: #15121e;
+  --surface-2: #1d1929;
+  --surface-3: #282338;
+  --line: #2f2942;
+  --text-primary: #f2eff8;
+  --text-secondary: #bdb6cf;
+  --text-muted: #8a83a0;
+  --gold: #f2c14e;
+  --violet: #9085e9;
+  --magenta: #d55181;
+  --blue: #3987e5;
+  --aqua: #199e70;
+  --orange: #d95926;
+  --red: #e66767;
+  --green: #0ca30c;
+  --yellow: #c98500;
+  --neutral: #5d5772;
+  --tier-s: #ef5a5a;
+  --tier-a: #f2c14e;
+  --tier-b: #b86ee6;
+  --tier-c: #3987e5;
+  --tier-d: #2fb36b;
+  --over: #3987e5;
+  --under: #d95926;
+  --radius: 18px;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(900px 500px at 10% -10%, rgba(144,133,233,.18), transparent 60%),
+    radial-gradient(800px 500px at 100% 0%, rgba(213,81,129,.14), transparent 60%),
+    radial-gradient(700px 600px at 50% 110%, rgba(242,193,78,.08), transparent 60%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font: 15px/1.5 Inter, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 32px 16px 80px; }
+h1, h2, h3 { font-family: Sora, Inter, sans-serif; margin: 0; letter-spacing: -.01em; }
+h2 { font-size: 20px; font-weight: 700; }
+h2 .em { margin-right: 8px; }
+.sub { color: var(--text-muted); font-size: 13px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .18em; font-size: 12px; font-weight: 600; color: var(--violet); }
+.title { font-size: clamp(28px, 5vw, 46px); font-weight: 800; line-height: 1.05; margin-top: 6px;
+  background: linear-gradient(92deg, #f2c14e 0%, #d55181 45%, #9085e9 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.meta { color: var(--text-secondary); margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; }
+.meta b { color: var(--text-primary); font-weight: 600; }
+.picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.picker button { font: 600 13px Inter, sans-serif; color: var(--text-secondary); background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 8px 14px; cursor: pointer; transition: .15s; }
+.picker button:hover { color: var(--text-primary); border-color: var(--violet); }
+.picker button.on { color: #0b0911; background: linear-gradient(92deg, #f2c14e, #d55181); border-color: transparent; }
+
+.card { background: linear-gradient(180deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+.section { margin-top: 22px; }
+.section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.grid { display: grid; gap: 16px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.two { grid-template-columns: 1.15fr 1fr; }
+@media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+
+.kpi { position: relative; overflow: hidden; }
+.kpi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--accent, var(--violet)); }
+.kpi .label { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+.kpi .value { font-family: Sora, sans-serif; font-size: 30px; font-weight: 800; margin-top: 6px; }
+.kpi .note { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+
+.warn { border-color: #6b4a12; background: linear-gradient(180deg, #2a2112, #1c170d); color: #f5d891; margin-bottom: 18px; }
+.warn ul { margin: 6px 0 0; padding-left: 20px; }
+
+.race-row { display: grid; grid-template-columns: 44px 140px 1fr 110px; align-items: center; gap: 12px; padding: 7px 0; }
+.race-row .rk { font-family: Sora, sans-serif; font-weight: 800; font-size: 20px; color: var(--text-muted); text-align: center; }
+.race-row.us .rk, .race-row.us .gname { color: var(--gold); }
+.race-row .gname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { height: 14px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
+.track > i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--neutral); }
+.race-row.us .track > i { background: linear-gradient(90deg, #d55181, #f2c14e); }
+.race-row .gdmg { text-align: right; color: var(--text-secondary); }
+@media (max-width: 600px) { .race-row { grid-template-columns: 20px 118px 1fr 54px; gap: 8px; } .race-row .rk { font-size: 17px; } .race-row .gname { font-size: 14px; } .race-row .gdmg { font-size: 12px; } }
+.gaps { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.chip { display: inline-flex; gap: 6px; align-items: center; background: var(--surface-3); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--text-secondary); }
+.chip b { color: var(--text-primary); }
+
+.insights { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.insights li { display: grid; grid-template-columns: 28px 1fr; gap: 8px; color: var(--text-secondary); }
+.insights li b { color: var(--text-primary); }
+
+.awards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.award { position: relative; overflow: hidden; padding: 18px 20px; }
+.award::after { content: ""; position: absolute; width: 160px; height: 160px; right: -60px; top: -60px; border-radius: 50%; background: var(--accent); opacity: .16; filter: blur(4px); }
+.award .ico { font-size: 26px; }
+.award .what { color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; margin-top: 8px; }
+.award .who { font-family: Sora, sans-serif; font-weight: 800; font-size: 22px; margin-top: 2px; color: var(--accent); }
+.award .why { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font-family: Inter, sans-serif; fill: var(--text-muted); font-size: 12px; }
+svg .grid-line { stroke: var(--line); stroke-width: 1; }
+svg .hit { fill: transparent; cursor: pointer; }
+svg text.lbl { fill: var(--text-primary); font-weight: 600; paint-order: stroke; stroke: var(--surface-1); stroke-width: 4px; stroke-linejoin: round; }
+svg text.lbl2 { fill: var(--text-secondary); font-weight: 500; paint-order: stroke; stroke: var(--surface-1); stroke-width: 3px; stroke-linejoin: round; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.legend i.ring { border-radius: 50%; border: 2px solid var(--text-secondary); background: transparent; }
+.legend i.dot { border-radius: 50%; }
+
+.seg-bar { display: flex; gap: 2px; height: 34px; border-radius: 8px; overflow: hidden; }
+.seg-bar > div { display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 600; color: #0b0911; white-space: nowrap; overflow: hidden; min-width: 0; }
+.seg-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.seg-legend div { font-size: 13px; color: var(--text-secondary); }
+.seg-legend b { display: block; font-family: Sora, sans-serif; font-size: 18px; color: var(--text-primary); }
+.seg-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+
+.tiers { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.tier-card { border-top: 3px solid var(--accent); }
+.tier-head { display: flex; align-items: center; gap: 12px; }
+.badge { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 8px; border-radius: 8px; font: 800 14px Sora, sans-serif; color: #0b0911; background: var(--accent); }
+.badge.sm { min-width: 22px; height: 22px; font-size: 12px; border-radius: 6px; }
+.tier-card .crit { color: var(--text-muted); font-size: 12px; }
+.tier-card .stat { display: flex; gap: 18px; margin: 12px 0 10px; }
+.tier-card .stat b { display: block; font: 700 18px Sora, sans-serif; }
+.tier-card .stat span { color: var(--text-muted); font-size: 12px; }
+.names { display: flex; flex-wrap: wrap; gap: 6px; }
+.names span { font-size: 12px; background: var(--surface-3); border-radius: 6px; padding: 2px 8px; color: var(--text-secondary); }
+
+.att-list { display: grid; gap: 10px; }
+.att-row { display: grid; grid-template-columns: 140px 1fr 70px 110px; gap: 12px; align-items: center; }
+.att-row .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pips { display: grid; grid-template-columns: repeat(5, auto); gap: 8px; justify-content: start; }
+.pips .day { display: flex; gap: 3px; }
+.pips i { width: 12px; height: 12px; border-radius: 3px; background: var(--surface-3); border: 1px solid var(--line); }
+.pips i.on { background: var(--aqua); border-color: var(--aqua); }
+.att-row .lost { text-align: right; color: var(--orange); }
+.att-row .cnt { text-align: right; color: var(--text-secondary); }
+@media (max-width: 640px) { .att-row { grid-template-columns: 1fr auto; } .att-row .pips { grid-column: 1 / -1; order: 3; } .att-row .lost { display: none; } }
+
+.table-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.search { background: var(--surface-3); border: 1px solid var(--line); color: var(--text-primary); border-radius: 10px; padding: 9px 12px; font: 14px Inter, sans-serif; min-width: 220px; }
+.search:focus { outline: none; border-color: var(--violet); }
+.table-wrap { overflow-x: auto; margin: 0 -22px -22px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 980px; }
+th { text-align: left; color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; padding: 10px 12px;
+  border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; background: var(--surface-2); }
+th:first-child, td:first-child { padding-left: 22px; }
+th:last-child, td:last-child { padding-right: 22px; }
+th.r, td.r { text-align: right; }
+th:hover { color: var(--text-primary); }
+th.sorted { color: var(--gold); }
+td { padding: 9px 12px; border-bottom: 1px solid rgba(47,41,66,.6); white-space: nowrap; }
+tr:hover td { background: rgba(144,133,233,.06); }
+tr.me td { background: rgba(242,193,78,.07); }
+td.pname { font-weight: 600; }
+.sharebar { display: inline-block; vertical-align: middle; width: 70px; height: 6px; background: var(--surface-3); border-radius: 3px; margin-left: 10px; overflow: hidden; }
+.sharebar i { display: block; height: 100%; background: linear-gradient(90deg, #9085e9, #d55181); border-radius: 0 3px 3px 0; }
+.up { color: #5fd38d; } .down { color: var(--red); } .flat { color: var(--text-muted); }
+.pos { color: #7fb2f0; } .neg { color: #ee8a5e; }
+
+.tip { position: fixed; pointer-events: none; z-index: 10; background: #0f0d16; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px;
+  color: var(--text-primary); box-shadow: 0 10px 30px rgba(0,0,0,.5); opacity: 0; transition: opacity .1s; max-width: 280px; }
+.tip .t { font-weight: 700; margin-bottom: 4px; }
+.tip .r { display: flex; justify-content: space-between; gap: 14px; color: var(--text-secondary); }
+.tip .r b { color: var(--text-primary); font-family: var(--mono); font-weight: 500; }
+.empty { color: var(--text-muted); text-align: center; padding: 30px 10px; }
+footer { margin-top: 40px; color: var(--text-muted); font-size: 12px; text-align: center; }
+
+th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 1; width: 56px; min-width: 56px; max-width: 56px; background: var(--surface-1); }
+th:nth-child(2), td:nth-child(2) { position: sticky; left: 56px; z-index: 1; background: var(--surface-1); box-shadow: 1px 0 0 var(--line); }
+th:nth-child(1), th:nth-child(2) { z-index: 2; background: var(--surface-2); }
+tr:hover td { background: #1d1a29; }
+tr:hover td:nth-child(1), tr:hover td:nth-child(2) { background: #1d1a29; }
+
+@media (max-width: 640px) {
+  .wrap { padding: 20px 12px 60px; }
+  .card { padding: 16px; border-radius: 14px; }
+  .grid { gap: 10px; }
+  .section { margin-top: 14px; }
+  h2 { font-size: 17px; }
+  .section-head { margin-bottom: 12px; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi .value { font-size: 23px; }
+  .kpi .label { font-size: 10.5px; letter-spacing: .07em; }
+  .kpi .note { font-size: 12px; }
+  .awards { grid-template-columns: 1fr 1fr; }
+  .award { padding: 14px; }
+  .award .ico { font-size: 22px; }
+  .award .what { font-size: 10.5px; letter-spacing: .07em; }
+  .award .who { font-size: 17px; overflow-wrap: anywhere; }
+  .award .why { font-size: 12px; }
+  .tiers { grid-template-columns: 1fr; }
+  .insights li { font-size: 14px; }
+  .chip { font-size: 12px; padding: 5px 10px; }
+  .table-wrap { margin: 0 -16px -16px; }
+  th:first-child, td:first-child { padding-left: 14px; width: 46px; min-width: 46px; max-width: 46px; }
+  th:nth-child(2), td:nth-child(2) { left: 46px; }
+  table { font-size: 13px; }
+  td, th { padding-left: 8px; padding-right: 8px; }
+  .table-tools, .search { width: 100%; min-width: 0; }
+  .legend { gap: 10px; font-size: 12px; }
+}
+
+body.share { background-attachment: scroll; }
+body.share .wrap { padding: 0; }
+body.share [data-shot] { padding: 14px 12px; margin: 0; }
+body.share [data-shot] > :first-child { margin-top: 0; }
+body.share [data-shot].grid { gap: 12px; }
+body.share .picker, body.share .table-tools, body.share footer, body.share .hint, body.share .sharebar { display: none; }
+body.share table { min-width: 0; font-size: 12.5px; }
+body.share td, body.share th { padding: 8px 6px; }
+body.share th:first-child, body.share td:first-child { padding-left: 12px; width: 40px; min-width: 40px; max-width: 40px; }
+body.share th:nth-child(2), body.share td:nth-child(2) { left: 40px; }
+body.share .table-wrap { overflow: visible; }
+body.export .picker, body.export .table-tools, body.export footer, body.export .hint, body.export .warn { display: none; }
+body.export .table-wrap { overflow: visible; }
+body.export th, body.export td { position: static !important; }
+body.share th, body.share td { position: static !important; box-shadow: none !important; }
+body.share th { letter-spacing: .05em; }
+.mini { font-size: 10px; line-height: 1; margin-top: 2px; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="tip" id="tip"></div>
+<script>
+const DATA = {"config": {"guild": "WhiteSnake", "guild_size": 50, "days": 5, "attempts_per_day": 3}, "generated": "2026-11-16 06:08", "weeks": [{"id": "week-46-blaze-onslaught", "year": null, "week": 46, "event": "Blaze Onslaught", "players": [{"player": "moodysheep", "power": 3766431, "attempts": 15, "damage": 11174756664}, {"player": "HipDysplasia", "power": 4381836, "attempts": 15, "damage": 9426271033}, {"player": "ThatGuy1", "power": 3548534, "attempts": 15, "damage": 5613292040}, {"player": "Calim", "power": 4265350, "attempts": 15, "damage": 5574502566}, {"player": "Cryox", "power": 4420632, "attempts": 15, "damage": 4586405493}, {"player": "Saitek", "power": 3696198, "attempts": 15, "damage": 4474703604}, {"player": "DeathMan", "power": 3700907, "attempts": 15, "damage": 4169866174}, {"player": "NanaBanana", "power": 4375970, "attempts": 15, "damage": 4044505775}, {"player": "TableSugar", "power": 3413124, "attempts": 15, "damage": 4027121186}, {"player": "LeVeloon", "power": 3209949, "attempts": 15, "damage": 4002785217}, {"player": "BadCompany", "power": 3449444, "attempts": 15, "damage": 3810844775}, {"player": "JAX", "power": 3242220, "attempts": 15, "damage": 3780129159}, {"player": "ffema", "power": 3061371, "attempts": 15, "damage": 3439100900}, {"player": "AgentInt", "power": 3466095, "attempts": 15, "damage": 3354081656}, {"player": "AceGambler", "power": 3445169, "attempts": 15, "damage": 3118895484}, {"player": "Marnypopis", "power": 2569099, "attempts": 15, "damage": 3116223142}, {"player": "Kimberlie", "power": 3469398, "attempts": 15, "damage": 2888319553}, {"player": "LegendOfCrom", "power": 3898576, "attempts": 15, "damage": 2708550946}, {"player": "JossJoestar", "power": 2995907, "attempts": 15, "damage": 2646291841}, {"player": "Maxime", "power": 4061884, "attempts": 15, "damage": 2616006234}, {"player": "Majima", "power": 3183997, "attempts": 15, "damage": 2461777433}, {"player": "GiornoJoske", "power": 4079997, "attempts": 15, "damage": 2459706345}, {"player": "Shikawar", "power": 3932948, "attempts": 15, "damage": 2396865465}, {"player": "Jojogodancer", "power": 3369361, "attempts": 15, "damage": 2374497850}, {"player": "Lunaratia", "power": 3244712, "attempts": 15, "damage": 2287008862}, {"player": "TheGuy0606", "power": 2947343, "attempts": 15, "damage": 2194305155}, {"player": "Ebasos", "power": 3102637, "attempts": 15, "damage": 2172712372}, {"player": "Chiaro", "power": 4002176, "attempts": 15, "damage": 2093440035}, {"player": "Sansopp", "power": 4106560, "attempts": 15, "damage": 2087929214}, {"player": "Amaliel", "power": 3071972, "attempts": 15, "damage": 2071535530}, {"player": "Hollow", "power": 3411966, "attempts": 15, "damage": 2046630525}, {"player": "Fioti", "power": 3541034, "attempts": 15, "damage": 1816188667}, {"player": "AccaHowler", "power": 3600069, "attempts": 15, "damage": 1694614697}, {"player": "LawLGD", "power": 2954384, "attempts": 15, "damage": 1631334420}, {"player": "coal", "power": 2711581, "attempts": 15, "damage": 1620210915}, {"player": "StRiN", "power": 2965425, "attempts": 15, "damage": 1493970211}, {"player": "Memo", "power": 2754953, "attempts": 15, "damage": 1224294754}, {"player": "Yann", "power": 3841512, "attempts": 15, "damage": 1219571770}, {"player": "DLD150", "power": 2880882, "attempts": 15, "damage": 1186839747}, {"player": "Fukaumi", "power": 4061618, "attempts": 15, "damage": 1182767495}, {"player": "shaman7718", "power": 2868271, "attempts": 15, "damage": 717017313}, {"player": "nyan", "power": 2923196, "attempts": 13, "damage": 2460177563}, {"player": "JosephTakagi", "power": 3770062, "attempts": 12, "damage": 3437930220}, {"player": "Scoobydoo", "power": 3008818, "attempts": 12, "damage": 2560710526}, {"player": "Flix", "power": 3040944, "attempts": 11, "damage": 1688196461}, {"player": "funiValentin", "power": 2844587, "attempts": 10, "damage": 2125909957}, {"player": "Azeael", "power": 3802733, "attempts": 10, "damage": 963473897}, {"player": "Kenutz", "power": 2858960, "attempts": 9, "damage": 657960431}, {"player": "Roby", "power": 2469933, "attempts": 9, "damage": 652565109}, {"player": "Silver", "power": 2829510, "attempts": 3, "damage": 455321466}], "guilds": [{"rank": 1, "guild": "STARDUST", "damage": 175792022821}, {"rank": 2, "guild": "ZAWARUDO", "damage": 154640235447}, {"rank": 3, "guild": "WhiteSnake", "damage": 142008117847}, {"rank": 4, "guild": "ZOV", "damage": 118648911749}], "warnings": []}]};
+const CFG = DATA.config;
+const MAX_ATT = CFG.days * CFG.attempts_per_day;
+const TIERS = [
+  { id: "S", min: 2.0, color: "var(--tier-s)", desc: "≥ 2× guild median per attempt" },
+  { id: "A", min: 1.3, color: "var(--tier-a)", desc: "1.3–2× median" },
+  { id: "B", min: 0.9, color: "var(--tier-b)", desc: "0.9–1.3× median" },
+  { id: "C", min: 0.6, color: "var(--tier-c)", desc: "0.6–0.9× median" },
+  { id: "D", min: -Infinity, color: "var(--tier-d)", desc: "< 0.6× median" },
+];
+const tierOf = id => TIERS.find(t => t.id === id);
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const full = n => Math.round(n).toLocaleString("en-US");
+function short(n, d = 2) {
+  const a = Math.abs(n);
+  if (a >= 1e12) return (n / 1e12).toFixed(d) + "T";
+  if (a >= 1e9) return (n / 1e9).toFixed(d) + "B";
+  if (a >= 1e6) return (n / 1e6).toFixed(d === 2 ? 1 : d) + "M";
+  if (a >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return Math.round(n).toString();
+}
+const pct = (x, d = 1) => (x * 100).toFixed(d) + "%";
+const signed = (x, f) => (x > 0 ? "+" : x < 0 ? "−" : "±") + f(Math.abs(x));
+const median = a => { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : 0; };
+const ordinal = n => n + (["th", "st", "nd", "rd"][(n % 100 - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th");
+
+function analyse(week, prev) {
+  const ps = week.players.map(p => ({ ...p, perAtt: p.attempts ? p.damage / p.attempts : 0 }));
+  ps.sort((a, b) => b.damage - a.damage);
+  const total = ps.reduce((s, p) => s + p.damage, 0);
+  const attempts = ps.reduce((s, p) => s + p.attempts, 0);
+  const slots = CFG.guild_size * MAX_ATT;
+  const active = ps.filter(p => p.attempts > 0);
+  const med = median(active.map(p => p.perAtt));
+  const n = active.length;
+  const mx = active.reduce((s, p) => s + p.power, 0) / n;
+  const my = active.reduce((s, p) => s + p.perAtt, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  active.forEach(p => { sxy += (p.power - mx) * (p.perAtt - my); sxx += (p.power - mx) ** 2; syy += (p.perAtt - my) ** 2; });
+  const slope = sxx ? sxy / sxx : 0, intercept = my - slope * mx, r = sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
+  const byPower = [...ps].sort((a, b) => b.power - a.power);
+  const prevMap = prev ? Object.fromEntries(prev.ps.map(p => [p.player.toLowerCase(), p])) : null;
+  ps.forEach((p, i) => {
+    p.rank = i + 1;
+    p.share = total ? p.damage / total : 0;
+    p.powerRank = byPower.indexOf(p) + 1;
+    p.rankVsPower = p.powerRank - p.rank;
+    p.eff = p.power ? p.perAtt / p.power : 0;
+    p.expected = Math.max(1, intercept + slope * p.power);
+    p.resid = p.attempts ? p.perAtt / p.expected - 1 : null;
+    p.missed = Math.max(0, MAX_ATT - p.attempts);
+    p.lost = p.missed * (p.attempts ? p.perAtt : med);
+    p.ratio = med ? p.perAtt / med : 0;
+    p.tier = p.attempts ? TIERS.find(t => p.ratio >= t.min).id : "D";
+    p.daysMin = Math.ceil(p.attempts / CFG.attempts_per_day);
+    const q = prevMap && prevMap[p.player.toLowerCase()];
+    p.prev = q || null;
+    p.rankDelta = q ? q.rank - p.rank : null;
+    p.shareDelta = q ? p.share - q.share : null;
+    p.powerDelta = q ? p.power - q.power : null;
+  });
+  const sortedDesc = ps.map(p => p.damage);
+  let cum = 0, gini = 0;
+  const asc = [...sortedDesc].reverse();
+  asc.forEach((v, i) => { cum += v; gini += (2 * (i + 1) - asc.length - 1) * v; });
+  gini = total ? gini / (asc.length * total) : 0;
+  const topShare = k => ps.slice(0, k).reduce((s, p) => s + p.share, 0);
+  const guilds = week.guilds.length ? week.guilds.map(g => ({ ...g })) : [{ rank: null, guild: CFG.guild, damage: total }];
+  let us = guilds.find(g => g.guild.toLowerCase() === CFG.guild.toLowerCase());
+  if (!us) { us = { rank: null, guild: CFG.guild, damage: total }; guilds.push(us); }
+  us.us = true;
+  const lost = ps.reduce((s, p) => s + p.lost, 0);
+  return { week, ps, total, attempts, slots, med, slope, intercept, r, gini, topShare, guilds, us, lost,
+    fullClears: ps.filter(p => p.attempts >= MAX_ATT).length, missedAtt: ps.reduce((s, p) => s + p.missed, 0),
+    avgPerAtt: attempts ? total / attempts : 0, avgPlayer: total / ps.length, medPlayer: median(sortedDesc) };
+}
+
+const analysed = [];
+DATA.weeks.forEach((w, i) => analysed.push(analyse(w, analysed[i - 1])));
+const PARAMS = new URLSearchParams(location.search);
+const SHARE = PARAMS.has("share");
+if (SHARE) document.body.classList.add("share");
+const EXPORT = PARAMS.has("export");
+if (EXPORT) document.body.classList.add("export");
+let current = Math.max(0, PARAMS.has("week") ? analysed.findIndex(a => a.week.id === PARAMS.get("week")) : analysed.length - 1);
+let sortKey = "rank", sortDir = 1, query = "";
+
+const tip = document.getElementById("tip");
+function tipHTML(title, rows) { return `<div class="t">${esc(title)}</div>` + rows.map(([k, v]) => `<div class="r"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join(""); }
+document.addEventListener("mousemove", e => {
+  const el = e.target.closest("[data-tip]");
+  if (!el) { tip.style.opacity = 0; return; }
+  tip.innerHTML = decodeURIComponent(el.dataset.tip);
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; tip.style.opacity = 1;
+});
+const tipAttr = (title, rows) => `data-tip="${encodeURIComponent(tipHTML(title, rows))}"`;
+const playerTip = (p, A) => tipAttr(p.player, [
+  ["Rank", "#" + p.rank], ["Damage", full(p.damage)], ["Share", pct(p.share, 2)], ["Attempts", `${p.attempts}/${MAX_ATT}`],
+  ["Dmg / attempt", short(p.perAtt)], ["Power", full(p.power)], ["Tier", p.tier],
+  ["vs expected", p.resid == null ? "—" : signed(p.resid, x => pct(x, 0))]]);
+
+function renderHeader(A) {
+  const w = A.week;
+  const picker = analysed.length > 1 ? `<div class="picker">${analysed.map((a, i) =>
+    `<button class="${i === current ? "on" : ""}" data-week="${i}">W${a.week.week} · ${esc(a.week.event)}</button>`).join("")}</div>` : "";
+  return `<header class="top"><div>
+    <div class="eyebrow">⚔️ Guild battle report</div>
+    <h1 class="title">${esc(w.event)}</h1>
+    <div class="meta"><span>🗓️ Week <b>${w.week}</b>${w.year ? " · " + w.year : ""}</span><span>🦋 <b>${esc(CFG.guild)}</b></span>
+    <span>👥 <b>${w.players.length}</b> players</span><span>🏆 <b>${A.us.rank ? ordinal(A.us.rank) : "—"}</b> place</span></div></div>${picker}</header>`
+    + (w.warnings.length ? `<div class="card warn">⚠️ <b>Data check</b><ul>${w.warnings.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "");
+}
+
+function renderKPIs(A) {
+  const prev = analysed[current - 1];
+  const delta = prev ? `<span class="${A.total >= prev.total ? "up" : "down"}">${signed(A.total / prev.total - 1, x => pct(x))}</span> vs W${prev.week.week}` : "all attempts combined";
+  const items = [
+    ["💥", "Total damage", short(A.total), delta, "var(--gold)", full(A.total)],
+    ["🏆", "Guild rank", A.us.rank ? "#" + A.us.rank : "—", A.guilds.length > 1 ? `of ${A.guilds.length} listed` : "", "var(--magenta)"],
+    ["🎯", "Attempts used", pct(A.attempts / A.slots), `${A.attempts} / ${A.slots} · ${A.missedAtt} missed`, "var(--aqua)"],
+    ["⚡", "Avg per attempt", short(A.avgPerAtt), `median player ${short(A.med)}`, "var(--blue)"],
+    ["✅", "Full clears", `${A.fullClears}/${A.ps.length}`, `played all ${MAX_ATT} attempts`, "var(--violet)"],
+    ["🧮", "Avg per player", short(A.avgPlayer), `median ${short(A.medPlayer)}`, "var(--orange)"],
+  ];
+  return `<div class="grid kpis">${items.map(([ic, l, v, n, c, t]) => `<div class="card kpi" style="--accent:${c}" ${t ? tipAttr(l, [["Exact", t]]) : ""}>
+    <div class="label">${ic} ${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("")}</div>`;
+}
+
+function renderRace(A) {
+  const max = Math.max(...A.guilds.map(g => g.damage));
+  const rows = A.guilds.map(g => `<div class="race-row ${g.us ? "us" : ""}" ${tipAttr(g.guild, [["Rank", g.rank ? "#" + g.rank : "—"], ["Damage", full(g.damage)], ["vs " + CFG.guild, g.us ? "—" : signed(g.damage - A.us.damage, short)]])}>
+    <div class="rk">${g.rank ?? "?"}</div><div class="gname">${g.us ? "🦋 " : ""}${esc(g.guild)}</div>
+    <div class="track"><i style="width:${(g.damage / max * 100).toFixed(2)}%"></i></div><div class="gdmg num">${short(g.damage)}</div></div>`).join("");
+  const above = A.guilds.filter(g => g.rank && A.us.rank && g.rank === A.us.rank - 1)[0];
+  const below = A.guilds.filter(g => g.rank && A.us.rank && g.rank === A.us.rank + 1)[0];
+  const first = A.guilds.find(g => g.rank === 1);
+  const chips = [];
+  if (above) chips.push(`⬆️ Gap to #${above.rank}: <b>${short(above.damage - A.us.damage)}</b> (${pct((above.damage - A.us.damage) / A.us.damage)})`);
+  if (first && first !== above && !first.us) chips.push(`👑 Gap to #1: <b>${short(first.damage - A.us.damage)}</b>`);
+  if (below) chips.push(`🛡️ Lead over #${below.rank}: <b>${short(A.us.damage - below.damage)}</b>`);
+  if (above) chips.push(`📏 Needed per player to climb: <b>${short((above.damage - A.us.damage) / CFG.guild_size)}</b>`);
+  return `<div class="card"><div class="section-head"><h2><span class="em">🏁</span>Guild race</h2><span class="sub">Total damage, guilds shown on the ranking screen</span></div>
+    ${rows}<div class="gaps">${chips.map(c => `<span class="chip">${c}</span>`).join("")}</div></div>`;
+}
+
+function renderInsights(A) {
+  const L = [];
+  const above = A.guilds.find(g => g.rank && A.us.rank && g.rank === A.us.rank - 1);
+  const top = A.ps[0];
+  L.push(["👑", `<b>${esc(top.player)}</b> carried <b>${pct(top.share)}</b> of all guild damage — ${(top.damage / A.medPlayer).toFixed(1)}× the median player.`]);
+  L.push(["📊", `Top 5 dealt <b>${pct(A.topShare(5))}</b>, top 10 <b>${pct(A.topShare(10))}</b>. The bottom half (25 players) added <b>${pct(1 - A.topShare(Math.ceil(A.ps.length / 2)))}</b>.`]);
+  if (A.missedAtt) {
+    let s = `<b>${A.missedAtt}</b> missed attempts cost an estimated <b>${short(A.lost)}</b> (each player's own avg per attempt).`;
+    if (above) s += A.lost >= above.damage - A.us.damage ? ` That alone would have beaten <b>${esc(above.guild)}</b> for #${above.rank}. 😤` : ` Even with perfect attendance we'd still be <b>${short(above.damage - A.us.damage - A.lost)}</b> short of #${above.rank}.`;
+    L.push(["🕳️", s]);
+  } else L.push(["🎉", `Perfect attendance — every single attempt was used.`]);
+  const rr = A.r * A.r;
+  L.push(["🔗", `Roster power explains only <b>${pct(rr, 0)}</b> of damage per attempt (r = ${A.r.toFixed(2)}). ${rr < 0.3 ? "Team building and boss counters matter far more than raw power." : "Stronger rosters clearly hit harder."}`]);
+  const gini = A.gini;
+  L.push(["⚖️", `Damage inequality (Gini) is <b>${gini.toFixed(2)}</b> — ${gini < 0.25 ? "very balanced guild" : gini < 0.35 ? "moderately top-heavy" : "strongly top-heavy: a few players carry"}.`]);
+  const climbers = A.ps.filter(p => p.rankVsPower >= 10).length, sinkers = A.ps.filter(p => p.rankVsPower <= -10).length;
+  L.push(["🎢", `<b>${climbers}</b> players rank 10+ places higher in damage than in power; <b>${sinkers}</b> rank 10+ places lower.`]);
+  const prev = analysed[current - 1];
+  if (prev) {
+    const rk = prev.us.rank && A.us.rank ? prev.us.rank - A.us.rank : 0;
+    L.push(["📈", `Vs week ${prev.week.week} (${esc(prev.week.event)}): guild rank ${rk > 0 ? `up <b>${rk}</b>` : rk < 0 ? `down <b>${-rk}</b>` : "unchanged"}, attendance ${signed(A.attempts / A.slots - prev.attempts / prev.slots, x => pct(x))}. Bosses differ week to week — compare shares and ranks, not raw damage.`]);
+    const joined = A.ps.filter(p => !p.prev).map(p => p.player), left = prev.ps.filter(q => !A.ps.some(p => p.player.toLowerCase() === q.player.toLowerCase())).map(q => q.player);
+    if (joined.length || left.length) L.push(["🚪", `${joined.length ? `New: <b>${joined.map(esc).join(", ")}</b>. ` : ""}${left.length ? `Gone: <b>${left.map(esc).join(", ")}</b>.` : ""}`]);
+  }
+  return `<div class="card"><div class="section-head"><h2><span class="em">🧠</span>Key insights</h2></div><ul class="insights">${L.map(([i, t]) => `<li><span>${i}</span><span>${t}</span></li>`).join("")}</ul></div>`;
+}
+
+function renderAwards(A) {
+  const act = A.ps.filter(p => p.attempts > 0);
+  const taken = new Set();
+  const pick = (arr, f, ok = () => true) => {
+    const p = [...arr].filter(x => !taken.has(x) && f(x) != null && ok(x)).sort((a, b) => f(b) - f(a))[0];
+    if (p) taken.add(p);
+    return p;
+  };
+  const list = [];
+  const add = (ic, what, p, why, c) => { if (p) list.push([ic, what, p, why(p), c]); };
+  add("👑", "MVP", pick(A.ps, p => p.damage), p => `${short(p.damage)} total · ${pct(p.share)} of guild`, "var(--gold)");
+  add("⚡", "Hardest hitter", pick(act, p => p.perAtt), p => `${short(p.perAtt)} per attempt`, "var(--magenta)");
+  add("🎯", "Most efficient", pick(act, p => p.eff), p => `${Math.round(p.eff)} dmg per power point per attempt`, "var(--aqua)");
+  add("🚀", "Overperformer", pick(act, p => p.resid, p => p.attempts >= 6 && p.resid > 0), p => `${signed(p.resid, x => pct(x, 0))} above what their power predicts`, "var(--blue)");
+  add("🪜", "Biggest climber", pick(A.ps, p => p.rankVsPower, p => p.rankVsPower > 0), p => `#${p.powerRank} in power → #${p.rank} in damage`, "var(--violet)");
+  const prev = analysed[current - 1];
+  if (prev) {
+    add("📈", "Most improved", pick(A.ps, p => p.rankDelta, p => p.rankDelta > 0), p => `up ${p.rankDelta} places (#${p.prev.rank} → #${p.rank})`, "var(--green)");
+    add("🏋️", "Biggest power gain", pick(A.ps, p => p.powerDelta, p => p.powerDelta > 0), p => `+${full(p.powerDelta)} power since W${prev.week.week}`, "var(--yellow)");
+  } else {
+    add("🧱", "Strongest roster", pick(A.ps, p => p.power), p => `${full(p.power)} power · #${p.rank} in damage`, "var(--orange)");
+  }
+  const giants = new Set([...A.ps].sort((a, b) => b.power - a.power).slice(0, Math.ceil(A.ps.length / 4)));
+  add("💤", "Sleeping giant", pick(A.ps, p => -p.resid, p => giants.has(p) && p.attempts >= MAX_ATT && p.resid < 0), p => `top-25% power, ${signed(p.resid, x => pct(x, 0))} vs expected`, "var(--red)");
+  if (!prev) add("🛡️", "Iron discipline", pick(A.ps, p => -p.power, p => p.attempts >= MAX_ATT && p.rankVsPower > 0 && p.powerRank > A.ps.length * .75), p => `bottom-25% power, all ${MAX_ATT} attempts, #${p.rank} in damage`, "var(--green)");
+  const weakHalf = new Set([...A.ps].sort((a, b) => a.power - b.power).slice(0, Math.floor(A.ps.length / 2)));
+  add("💎", "Hidden gem", pick(act, p => p.perAtt, p => weakHalf.has(p)), p => `bottom-half power (#${p.powerRank}), ${short(p.perAtt)} per attempt`, "#e87ba4");
+  add("⏱️", "Part-time hero", pick(act, p => p.perAtt, p => p.attempts < MAX_ATT), p => `${short(p.perAtt)} per attempt in ${p.attempts}/${MAX_ATT} attempts — full run ≈ ${short(p.perAtt * MAX_ATT)}`, "var(--yellow)");
+  const fallbacks = [
+    () => add("⚖️", "Mr. Average", pick(A.ps, p => -Math.abs(p.damage - A.medPlayer)), p => `${short(p.damage)} · closest to the guild median`, "var(--violet)"),
+    () => add("🧱", "Strongest roster", pick(A.ps, p => p.power), p => `${full(p.power)} power · #${p.rank} in damage`, "var(--orange)"),
+  ];
+  for (const f of fallbacks) { if (list.length >= 10) break; f(); }
+  return `<div class="section-head section"><h2><span class="em">🏅</span>Awards</h2><span class="sub hint">Hover or tap a card for details</span></div>
+    <div class="grid awards">${list.map(([ic, what, p, why, c]) => `<div class="card award" style="--accent:${c}" ${playerTip(p, A)}>
+      <div class="ico">${ic}</div><div class="what">${what}</div><div class="who">${esc(p.player)}</div><div class="why">${why}</div></div>`).join("")}</div>`;
+}
+
+function niceMax(v) { const e = 10 ** Math.floor(Math.log10(v)); const f = v / e; return (f <= 1 ? 1 : f <= 1.2 ? 1.2 : f <= 1.6 ? 1.6 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 4 ? 4 : f <= 5 ? 5 : f <= 8 ? 8 : 10) * e; }
+
+function plotWidth(desktop, breakpoint) {
+  if (innerWidth > breakpoint) return desktop;
+  const app = document.getElementById("app"), cs = getComputedStyle(app);
+  const content = app.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const card = innerWidth <= 640 ? (SHARE ? 56 : 32) : 44;
+  return Math.max(280, Math.floor(content - card - 2));
+}
+
+function renderDistribution(A) {
+  const W = plotWidth(1000, 760), names = W >= 700, pb = names ? 112 : 30;
+  const H = (W < 600 ? 202 : 272) + pb, pl = W < 600 ? 40 : 56, pr = 10, pt = 16;
+  const n = A.ps.length, max = niceMax(A.ps[0].damage);
+  const bw = (W - pl - pr) / n;
+  const y = v => pt + (H - pt - pb) * (1 - v / max);
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4, yy = y(v); g += `<line class="grid-line" x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 8}" y="${yy + 4}" text-anchor="end">${short(v, 0)}</text>`; }
+  const bars = A.ps.map((p, i) => {
+    const x = pl + i * bw, h = Math.max(2, y(0) - y(p.damage)), top = y(0) - h, w = Math.max(2, bw - 2), rr = Math.min(4, w / 2);
+    const path = `M${x},${y(0)} V${top + rr} Q${x},${top} ${x + rr},${top} H${x + w - rr} Q${x + w},${top} ${x + w},${top + rr} V${y(0)} Z`;
+    const label = i === 0 ? `<text x="${x + w + 6}" y="${top + 12}" style="fill:var(--text-primary);font-weight:600">👑 ${esc(p.player)} · ${short(p.damage)}</text>` : "";
+    const partial = p.attempts < MAX_ATT ? `<circle cx="${x + w / 2}" cy="${top - 7}" r="3" fill="var(--orange)"/>` : "";
+    const cx = x + w / 2;
+    const tick = names
+      ? `<text transform="translate(${cx},${y(0) + 8}) rotate(-90)" text-anchor="end" dominant-baseline="central" style="font-size:11px;fill:var(--text-secondary)">${esc(p.player)}</text>`
+      : (p.rank === 1 || p.rank % 5 === 0) ? `<line x1="${cx}" x2="${cx}" y1="${y(0) + 2}" y2="${y(0) + 6}" stroke="var(--text-muted)"/><text x="${cx}" y="${y(0) + 18}" text-anchor="middle" style="font-size:10px">${p.rank}</text>` : "";
+    return `<g ${playerTip(p, A)}><path d="${path}" fill="${tierOf(p.tier).color}" opacity="${p.attempts < MAX_ATT ? .75 : 1}"/>${label}${partial}${tick}<rect class="hit" x="${x}" y="${pt}" width="${bw}" height="${H - pt}"/></g>`;
+  }).join("");
+  const avgY = y(A.avgPlayer);
+  const avg = `<line x1="${pl}" x2="${W - pr}" y1="${avgY}" y2="${avgY}" stroke="var(--text-secondary)" stroke-dasharray="5 5" stroke-width="1.5"/><text x="${W - pr}" y="${avgY - 6}" text-anchor="end" style="fill:var(--text-secondary)">guild avg ${short(A.avgPlayer)}</text>`;
+  return `<div class="card section"><div class="section-head"><h2><span class="em">📊</span>Damage distribution</h2><span class="sub">Every player, highest to lowest · colour = tier${names ? "" : " · numbers = rank"}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Damage per player">${g}${bars}${avg}</svg>
+    <div class="legend">${TIERS.map(t => `<span><i style="background:${t.color}"></i>Tier ${t.id}</span>`).join("")}<span><i class="dot" style="background:var(--orange);width:8px;height:8px"></i>missed attempts</span></div></div>`;
+}
+
+const measureCtx = document.createElement("canvas").getContext("2d");
+function textWidth(s, size, weight) { measureCtx.font = `${weight} ${size}px Inter, "Segoe UI", sans-serif`; return measureCtx.measureText(s).width * 1.04 + 2; }
+
+function placeLabels(points, [bx0, by0, bx1, by1], fs) {
+  const R = 7, h = fs + 3, boxes = points.map(q => [q.cx - R, q.cy - R, q.cx + R, q.cy + R]);
+  const hits = (b) => b[0] < bx0 || b[2] > bx1 || b[1] < by0 - 6 || b[3] > by1 || boxes.some(o => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
+  const crowd = q => points.filter(o => Math.hypot(o.cx - q.cx, o.cy - q.cy) < 60).length;
+  const order = [...points].sort((a, b) => (b.star - a.star) || (crowd(b) - crowd(a)));
+  let out = "", missing = 0;
+  for (const q of order) {
+    const size = q.star ? fs + 1 : fs, w = textWidth(q.p.player, size, q.star ? 600 : 500);
+    let found = null;
+    const angles = [0, 180, 270, 90, 315, 225, 45, 135, 337.5, 202.5, 292.5, 247.5, 22.5, 157.5, 67.5, 112.5].map(a => a * Math.PI / 180);
+    for (const gap of [3, 12, 24, 38, 56, 78, 104, 134]) {
+      const d = R + gap;
+      for (const a of angles) {
+        const c = Math.cos(a), s = Math.sin(a);
+        const x = q.cx + c * d - (c < -0.3 ? w : c > 0.3 ? 0 : w / 2), y = q.cy + s * d - (s < -0.3 ? h : s > 0.3 ? 0 : h / 2);
+        const b = [x, y, x + w, y + h];
+        if (!hits(b)) { found = { b, gap }; break; }
+      }
+      if (found) break;
+    }
+    if (!found) { missing++; continue; }
+    const [x, y, x2, y2] = found.b;
+    boxes.push(found.b);
+    if (found.gap > 3) {
+      const tx = Math.max(x, Math.min(q.cx, x2)), ty = Math.max(y, Math.min(q.cy, y2));
+      const len = Math.hypot(tx - q.cx, ty - q.cy) || 1;
+      out = `<line x1="${q.cx + (tx - q.cx) / len * R}" y1="${q.cy + (ty - q.cy) / len * R}" x2="${tx}" y2="${ty}" stroke="var(--text-muted)" stroke-width="1" opacity=".55" pointer-events="none"/>` + out;
+    }
+    out += `<text x="${x}" y="${y + h / 2}" dominant-baseline="central" class="${q.star ? "lbl" : "lbl2"}" style="font-size:${size}px" pointer-events="none">${esc(q.p.player)}</text>`;
+  }
+  window.__unplaced = missing;
+  return out;
+}
+
+function renderScatter(A) {
+  const W = plotWidth(1000, 760), logY = W < 600, H = logY ? 660 : 580, pl = W < 500 ? 46 : 60, pr = 16, pt = 16, pb = 40;
+  const act = A.ps.filter(p => p.attempts > 0);
+  const xs = act.map(p => p.power), ys = act.map(p => p.perAtt);
+  const step = logY ? 2.5e5 : 5e5;
+  const x0 = Math.floor(Math.min(...xs) / step) * step, x1 = Math.ceil(Math.max(...xs) / step) * step;
+  const y1 = niceMax(Math.max(...ys));
+  const lo = Math.min(...ys) * 0.85;
+  let t0 = 25e6;
+  while (t0 < lo) t0 *= 2;
+  const X = v => pl + (W - pl - pr) * (v - x0) / (x1 - x0);
+  const Y = logY
+    ? v => pt + (H - pt - pb) * (1 - (Math.log(Math.max(v, lo)) - Math.log(lo)) / (Math.log(y1) - Math.log(lo)))
+    : v => pt + (H - pt - pb) * (1 - v / y1);
+  const ticks = [];
+  if (logY) for (let t = t0; t <= y1 * 1.001; t *= 2) ticks.push(t);
+  else for (let i = 0; i <= 4; i++) ticks.push(y1 * i / 4);
+  let g = "";
+  ticks.forEach(v => g += `<line class="grid-line" x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end">${short(v, 0)}</text>`);
+  for (let v = Math.ceil(x0 / 5e5) * 5e5; v <= x1 + 1; v += 5e5) g += `<text x="${X(v)}" y="${H - pb + 20}" text-anchor="middle">${(v / 1e6).toFixed(1)}M</text>`;
+  g += `<text x="${(pl + W - pr) / 2}" y="${H}" text-anchor="middle">Roster power →${logY ? "  ·  damage axis doubles per line" : ""}</text>`;
+  const trend = Array.from({ length: 41 }, (_, i) => x0 + (x1 - x0) * i / 40).map(v => [v, A.intercept + A.slope * v]).filter(([, v]) => v > (logY ? lo : 0) && v <= y1);
+  g += `<polyline points="${trend.map(([v, t]) => `${X(v)},${Y(t)}`).join(" ")}" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/>`;
+  const col = p => p.resid > 0.15 ? "var(--over)" : p.resid < -0.15 ? "var(--under)" : "var(--neutral)";
+  const sorted = [...act].sort((a, b) => b.resid - a.resid);
+  const star = new Set([...sorted.slice(0, 3), ...sorted.slice(-3)]);
+  const labels = placeLabels(act.map(p => ({ p, cx: X(p.power), cy: Y(p.perAtt), star: star.has(p) })), [pl, pt, W - pr, H - pb], W < 600 ? 10 : 11);
+  const dots = act.map(p => {
+    const cx = X(p.power), cy = Y(p.perAtt), partial = p.attempts < MAX_ATT;
+    const dot = partial ? `<circle cx="${cx}" cy="${cy}" r="6" fill="var(--surface-1)" stroke="${col(p)}" stroke-width="2.5"/>` : `<circle cx="${cx}" cy="${cy}" r="6" fill="${col(p)}" stroke="var(--surface-1)" stroke-width="2"/>`;
+    return `<g ${playerTip(p, A)}>${dot}<circle class="hit" cx="${cx}" cy="${cy}" r="12"/></g>`;
+  }).join("") + labels;
+  return `<div class="card" id="sec-power"><div class="section-head"><h2><span class="em">🔬</span>Power vs damage per attempt</h2><span class="sub">r = ${A.r.toFixed(2)} · R² = ${(A.r * A.r).toFixed(2)}</span></div>
+    <svg viewBox="0 0 ${W} ${H + 6}" role="img" aria-label="Scatter of roster power against damage per attempt">${g}${dots}</svg>
+    <div class="legend"><span><i class="dot" style="background:var(--over)"></i>Over &gt;15% vs expected</span><span><i class="dot" style="background:var(--neutral)"></i>On par</span><span><i class="dot" style="background:var(--under)"></i>Under &gt;15%</span><span><i class="ring"></i>incomplete attempts</span><span>┄ expected (trend)</span></div></div>`;
+}
+
+function renderConcentration(A) {
+  const n = A.ps.length;
+  const cuts = [[1, 5, "Top 5", "var(--tier-s)"], [6, 10, "6–10", "var(--tier-a)"], [11, 20, "11–20", "var(--tier-b)"], [21, 35, "21–35", "var(--tier-c)"], [36, n, `36–${n}`, "var(--tier-d)"]].filter(c => c[0] <= n);
+  const segs = cuts.map(([a, b, l, c]) => { const s = A.ps.slice(a - 1, b).reduce((x, p) => x + p.share, 0); return { l, c, s, cnt: Math.min(b, n) - a + 1 }; });
+  return `<div class="card" id="sec-carry"><div class="section-head"><h2><span class="em">🥧</span>Who carries the guild</h2><span class="sub">Share of total damage by rank bracket</span></div>
+    <div class="seg-bar">${segs.map(s => `<div style="flex:${s.s};background:${s.c}" ${tipAttr(s.l, [["Players", s.cnt], ["Share", pct(s.s)], ["Per player", pct(s.s / s.cnt, 2)]])}>${s.s > .08 ? pct(s.s, 0) : ""}</div>`).join("")}</div>
+    <div class="seg-legend">${segs.map(s => `<div><i style="background:${s.c}"></i>${s.l} <b>${pct(s.s)}</b>${pct(s.s / s.cnt, 2)} per player</div>`).join("")}</div>
+    <div class="gaps"><span class="chip">⚖️ Gini <b>${A.gini.toFixed(2)}</b></span><span class="chip">🥇 #1 vs #${n}: <b>${(A.ps[0].damage / A.ps[n - 1].damage).toFixed(1)}×</b></span><span class="chip">🎚️ Median player <b>${short(A.medPlayer)}</b></span></div></div>`;
+}
+
+function renderTiers(A) {
+  return `<div class="section-head section"><h2><span class="em">🎖️</span>Tiers</h2><span class="sub">By damage per attempt vs guild median (${short(A.med)}) — fair to players who missed attempts</span></div>
+    <div class="grid tiers">${TIERS.map(t => {
+      const m = A.ps.filter(p => p.tier === t.id), s = m.reduce((x, p) => x + p.share, 0);
+      return `<div class="card tier-card" style="--accent:${t.color}"><div class="tier-head"><span class="badge">${t.id}</span><div><b>Tier ${t.id}</b><div class="crit">${t.desc}</div></div></div>
+        <div class="stat"><div><b>${m.length}</b><span>players</span></div><div><b>${pct(s)}</b><span>of damage</span></div></div>
+        <div class="names">${m.map(p => `<span ${playerTip(p, A)}>${esc(p.player)}</span>`).join("") || `<span>—</span>`}</div></div>`;
+    }).join("")}</div>`;
+}
+
+function renderAttendance(A) {
+  const miss = A.ps.filter(p => p.missed > 0).sort((a, b) => b.missed - a.missed || b.lost - a.lost);
+  const pips = p => `<div class="pips">${Array.from({ length: CFG.days }, (_, d) => `<div class="day">${Array.from({ length: CFG.attempts_per_day }, (_, k) => `<i class="${d * CFG.attempts_per_day + k < p.attempts ? "on" : ""}"></i>`).join("")}</div>`).join("")}</div>`;
+  const body = miss.length ? `<div class="att-list">${miss.map(p => `<div class="att-row" ${tipAttr(p.player, [["Attempts", `${p.attempts}/${MAX_ATT}`], ["Active days (min)", `${p.daysMin}/${CFG.days}`], ["Avg per attempt", short(p.perAtt)], ["Est. damage lost", short(p.lost)]])}>
+      <div class="nm">${esc(p.player)}</div>${pips(p)}<div class="cnt num">${p.attempts}/${MAX_ATT}</div><div class="lost num">−${short(p.lost)}</div></div>`).join("")}</div>`
+    : `<div class="empty">🎉 Everyone used all ${MAX_ATT} attempts.</div>`;
+  return `<div class="card"><div class="section-head"><h2><span class="em">📅</span>Attendance</h2><span class="sub">${A.fullClears} full clears · ${A.missedAtt} attempts missed · ≈${short(A.lost)} left on the table</span></div>
+    ${body}<div class="legend"><span><i style="background:var(--aqua)"></i>attempt used (shown in order, actual days unknown)</span><span><i style="background:var(--surface-3);border:1px solid var(--line)"></i>missed</span><span style="color:var(--orange)">−X estimated lost damage</span></div></div>`;
+}
+
+function renderHistory() {
+  if (analysed.length < 2) return `<div class="card section"><div class="section-head"><h2><span class="em">📈</span>Season trend</h2></div>
+    <div class="empty">Add a second week folder and run the generator again — trends, rank changes and “Most improved” will appear here.</div></div>`;
+  const W = plotWidth(1000, 760), H = W < 600 ? 220 : 260, pl = W < 600 ? 44 : 60, pr = 30, pt = 30, pb = 40;
+  const tot = analysed.map(a => a.total), max = niceMax(Math.max(...tot, ...analysed.flatMap(a => a.guilds.map(g => g.damage))));
+  const X = i => pl + 40 + (W - pl - pr - 80) * (i / (analysed.length - 1)), Y = v => pt + (H - pt - pb) * (1 - v / max);
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4; g += `<line class="grid-line" x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${pl - 8}" y="${Y(v) + 4}" text-anchor="end">${short(v, 0)}</text>`; }
+  analysed.forEach((a, i) => g += `<text x="${X(i)}" y="${H - pb + 22}" text-anchor="middle">W${a.week.week}</text>`);
+  const top1 = analysed.map(a => (a.guilds.find(x => x.rank === 1) || {}).damage);
+  if (top1.every(v => v)) g += `<polyline points="${top1.map((v, i) => `${X(i)},${Y(v)}`).join(" ")}" fill="none" stroke="var(--neutral)" stroke-width="2" stroke-dasharray="6 5"/>`;
+  g += `<polyline points="${tot.map((v, i) => `${X(i)},${Y(v)}`).join(" ")}" fill="none" stroke="var(--gold)" stroke-width="2.5"/>`;
+  g += analysed.map((a, i) => `<g ${tipAttr(`Week ${a.week.week} · ${a.week.event}`, [["Damage", full(a.total)], ["Rank", a.us.rank ? "#" + a.us.rank : "—"], ["Attendance", pct(a.attempts / a.slots)], ["#1 guild", top1[i] ? short(top1[i]) : "—"]])}>
+    <circle cx="${X(i)}" cy="${Y(a.total)}" r="7" fill="var(--gold)" stroke="var(--surface-1)" stroke-width="2"/>
+    <text x="${X(i)}" y="${Y(a.total) - 14}" text-anchor="middle" style="fill:var(--text-primary);font-weight:700">${a.us.rank ? "#" + a.us.rank : ""}</text>
+    <circle class="hit" cx="${X(i)}" cy="${Y(a.total)}" r="16"/></g>`).join("");
+  return `<div class="card section"><div class="section-head"><h2><span class="em">📈</span>Season trend</h2><span class="sub">Bosses change weekly — raw damage is context, rank is the score</span></div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Guild total damage per week">${g}</svg>
+    <div class="legend"><span><i style="background:var(--gold)"></i>${esc(CFG.guild)} (label = rank)</span>${top1.every(v => v) ? `<span>┄ #1 guild</span>` : ""}</div></div>`;
+}
+
+const COLS = [
+  ["rank", "#", "r"], ["player", "Player", ""], ["tier", "Tier", ""], ["damage", "Damage", "r"], ["share", "Share", ""], ["attempts", "Att.", "r"],
+  ["perAtt", "Dmg / att.", "r"], ["power", "Power", "r"], ["powerRank", "Pwr #", "r"], ["rankVsPower", "Dmg vs pwr rank", "r"],
+  ["eff", "Efficiency", "r"], ["resid", "vs expected", "r"], ["rankDelta", "Δ rank", "r"], ["shareDelta", "Δ share", "r"],
+];
+function renderTable(A, from = 0, to = Infinity) {
+  const hasPrev = current > 0;
+  const part = (SHARE || EXPORT) && (from > 0 || to < A.ps.length) ? ` · #${from + 1}–${Math.min(to, A.ps.length)}` : "";
+  const shareCols = ["rank", "player", "damage", "attempts", "perAtt"];
+  const cols = SHARE ? shareCols.map(k => COLS.find(c => c[0] === k)) : COLS.filter(c => hasPrev || !["rankDelta", "shareDelta"].includes(c[0]));
+  const q = query.toLowerCase();
+  const val = (p, k) => k === "tier" ? "SABCD".indexOf(p.tier) : k === "player" ? p.player.toLowerCase() : p[k] ?? -Infinity;
+  const rows = A.ps.slice(from, to).filter(p => !q || p.player.toLowerCase().includes(q)).sort((a, b) => { const x = val(a, sortKey), y = val(b, sortKey); return (x < y ? -1 : x > y ? 1 : 0) * sortDir; });
+  const maxShare = A.ps[0].share;
+  const delta = (v, f, cls = ["up", "down"]) => v == null ? `<span class="flat">new</span>` : v === 0 ? `<span class="flat">—</span>` : `<span class="${v > 0 ? cls[0] : cls[1]}">${v > 0 ? "▲" : "▼"} ${f(Math.abs(v))}</span>`;
+  const cell = (p, k) => {
+    switch (k) {
+      case "rank": return `<span class="num">${p.rank}</span>` + (SHARE && hasPrev && p.rankDelta ? `<div class="mini ${p.rankDelta > 0 ? "up" : "down"}">${p.rankDelta > 0 ? "▲" : "▼"}${Math.abs(p.rankDelta)}</div>` : SHARE && hasPrev && p.rankDelta == null ? `<div class="mini flat">new</div>` : "");
+      case "player": return SHARE ? `<span class="badge sm" style="--accent:${tierOf(p.tier).color};margin-right:8px">${p.tier}</span>${esc(p.player)}` : esc(p.player);
+      case "tier": return `<span class="badge sm" style="--accent:${tierOf(p.tier).color}">${p.tier}</span>`;
+      case "damage": return `<span class="num" title="${full(p.damage)}">${short(p.damage)}</span>`;
+      case "share": return `<span class="num">${pct(p.share, 2)}</span><span class="sharebar"><i style="width:${(p.share / maxShare * 100).toFixed(1)}%"></i></span>`;
+      case "attempts": return `<span class="num ${p.attempts < MAX_ATT ? "down" : ""}">${p.attempts}</span>`;
+      case "perAtt": return `<span class="num">${short(p.perAtt)}</span>`;
+      case "power": return `<span class="num">${(p.power / 1e6).toFixed(2)}M</span>`;
+      case "powerRank": return `<span class="num">${p.powerRank}</span>`;
+      case "rankVsPower": return delta(p.rankVsPower, x => x);
+      case "eff": return `<span class="num">${Math.round(p.eff)}</span>`;
+      case "resid": return p.resid == null ? "—" : `<span class="num ${p.resid > .15 ? "pos" : p.resid < -.15 ? "neg" : "flat"}">${signed(p.resid, x => pct(x, 0))}</span>`;
+      case "rankDelta": return delta(p.rankDelta, x => x);
+      case "shareDelta": return p.shareDelta == null ? `<span class="flat">new</span>` : delta(p.shareDelta, x => pct(x, 2));
+    }
+  };
+  return `<div class="card section"><div class="section-head"><h2><span class="em">📋</span>All players${part}</h2>
+    <div class="table-tools"><input class="search" id="search" placeholder="🔎 Search player…" value="${esc(query)}"><span class="sub">Click a column to sort</span></div></div>
+    <div class="table-wrap"><table><thead><tr>${cols.map(([k, l, c]) => `<th class="${c} ${k === sortKey ? "sorted" : ""}" data-sort="${k}">${l}${k === sortKey ? (sortDir > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(p => `<tr><td class="r">${cell(p, "rank")}</td>${cols.slice(1).map(([k, , c]) => `<td class="${c} ${k === "player" ? "pname" : ""}">${cell(p, k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <div class="legend hint" style="margin-top:30px"><span><b>Efficiency</b> = damage per attempt ÷ power</span><span><b>vs expected</b> = damage per attempt vs trend line for that power</span><span><b>Dmg vs pwr rank</b> = places gained over power ranking</span></div></div>`;
+}
+
+function render() {
+  const A = analysed[current];
+  document.title = `${A.week.event} · W${A.week.week} · ${CFG.guild}`;
+  const shot = (name, html, cls = "") => `<div data-shot="${name}" class="${cls}">${html}</div>`;
+  document.getElementById("app").innerHTML =
+    shot("01-summary", renderHeader(A) + renderKPIs(A)) +
+    shot("02-race-insights", renderRace(A) + renderInsights(A), "grid two section") +
+    shot("03-awards", renderAwards(A)) +
+    shot("04-distribution", renderDistribution(A)) +
+    shot("05-power-carry", renderScatter(A) + renderConcentration(A), "grid section") +
+    shot("06-tiers", renderTiers(A)) +
+    shot("07-attendance", renderAttendance(A), "section") +
+    (analysed.length > 1 || !SHARE ? shot("08-trend", renderHistory()) : "") +
+    ((SHARE || EXPORT) ? shot("09-leaderboard-top", renderTable(A, 0, Math.ceil(A.ps.length / 2))) + shot("10-leaderboard-rest", renderTable(A, Math.ceil(A.ps.length / 2)))
+      : shot("09-leaderboard", renderTable(A))) +
+    `<footer>Generated ${esc(DATA.generated)} · ${DATA.weeks.length} week(s) of data · ${esc(CFG.guild)}</footer>`;
+}
+let lastWidth = innerWidth, resizeTimer;
+addEventListener("resize", () => {
+  if (innerWidth === lastWidth) return;
+  lastWidth = innerWidth;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(render, 150);
+});
+addEventListener("scroll", () => { tip.style.opacity = 0; }, { passive: true });
+function renderTableOnly() {
+  const A = analysed[current];
+  const old = document.querySelector(".table-wrap").closest(".card");
+  const pos = document.getElementById("search").selectionStart;
+  old.outerHTML = renderTable(A);
+  const s = document.getElementById("search"); s.focus(); s.setSelectionRange(pos, pos);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-week]");
+  if (b) { current = +b.dataset.week; render(); return; }
+  const th = e.target.closest("th[data-sort]");
+  if (th) { const k = th.dataset.sort; if (k === sortKey) sortDir = -sortDir; else { sortKey = k; sortDir = ["rank", "player", "tier", "powerRank"].includes(k) ? 1 : -1; } renderTableOnly(); }
+});
+document.addEventListener("input", e => { if (e.target.id === "search") { query = e.target.value; renderTableOnly(); } });
+render();
+if (document.fonts) document.fonts.ready.then(render);
+</script>
+</body>
+</html>
